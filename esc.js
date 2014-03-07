@@ -18,9 +18,9 @@
 ││ Load Modules ││ SQL templates
 └┴──────────────┴┘ and node_modules 
 */
-var templates=require('./templates.js'); // SQL-ready JSON templates
+var templates=require('./lib/templates.js'); // SQL-ready JSON templates
 var config=require('./config.js'); // eSC / Magento / MSSQL configuration
-var User=require('./user.js');
+var User=require('./lib/user.js');
 
 var soap=require('soap'); // Magento SOAP API
 var Connection=require('tedious').Connection; // ConnectedBusiness MSSQL
