@@ -18,21 +18,21 @@
 ││ Load Modules ││ SQL templates
 └┴──────────────┴┘ and node_modules 
 */
+var templates=require('./templates.js'); // SQL-ready JSON templates
+var config=require('./config.js'); // eSC / Magento / MSSQL configuration
+var User=require('./user.js');
+
 var soap=require('soap'); // Magento SOAP API
 var Connection=require('tedious').Connection; // ConnectedBusiness MSSQL
 var Request=require('tedious').Request;
-
-var templates=require('./templates.js'); // SQL-ready JSON templates
-var config=require('./config.js'); // eSC / Magento / MSSQL configuration
-var user=require('./user.js')(Connection, Request);
 
 /*
 ┌┬─────────────────────────┬┐ 
 ││ Connect to data sources ││ Connects to MSSQL
 └┴─────────────────────────┴┘ & Magento SOAP v2 API
 */
-// Setup MSSQL connection - Keep alive until polling completed
-var connection=new Connection(config.mssql);
+var connection=new Connection(config.mssql); // Setup MSSQL connection - Keep alive until polling completed
+var user=new User(connection, Request, templates); // Setup user module
 
 // Connects to Magento, logs in and starts the polling procedure
 soap.createClient(config.magento.url, function(err,client){
