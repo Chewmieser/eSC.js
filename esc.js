@@ -21,6 +21,7 @@
 var templates=require('./lib/templates.js'); // SQL-ready JSON templates
 var config=require('./config.js'); // eSC / Magento / MSSQL configuration
 var User=require('./lib/user.js');
+var Order=require('./lib/order.js');
 
 var soap=require('soap'); // Magento SOAP API
 var Connection=require('tedious').Connection; // ConnectedBusiness MSSQL
@@ -33,6 +34,7 @@ var Request=require('tedious').Request;
 */
 var connection=new Connection(config.mssql); // Setup MSSQL connection - Keep alive until polling completed
 var user=new User(connection, Request, templates); // Setup user module
+var order=new Order(connection, Request, templates, user); // Setup SO module
 
 // Connects to Magento, logs in and starts the polling procedure
 soap.createClient(config.magento.url, function(err,client){
@@ -50,7 +52,8 @@ function pollMagento(client,sessionId){
 	// List sales orders updated since last update
 	client.salesOrderList({sessionId:sessionId, filters:config.magento.pollFilter}, function(err,result){
 		// Process list
-		processOrders(client,sessionId,result.result.item);
+		//processOrders(client,sessionId,result.result.item);
+		console.log(result.result.item);
 	});
 }
 
@@ -69,28 +72,10 @@ function processOrders(client,sessionId,orderList){
 			
 			// Lookup shipTo/billTo/contact codes, link properly
 			user.lookupUser(so, function(cust,bill,ship){
-				// If all resolved, continue with SalesOrder creation		// -- VERIFY NOT IMPORTED! MODIFY IF IMPORTED
-				var soTmp=templates.salesOrder(so,cust,bill,ship);
-				
-				// Resolve Bill-to
-				user.resolveAddress(soTmp.BillToPostalCode,function(addr){
-					soTmp.BillToState=addr.StateCode.value;
-					soTmp.BillToCounty=addr.County.value;
-					soTmp.BillToCountry=addr.CountryCode.value;
-					soTmp.BillToCity=addr.City.value;
+				// Lookup SalesOrder
+				order.lookupSalesOrder(so,cust,bill,ship,function(soCode){
 					
-					// Resolve Ship-to
-					user.resolveAddress(soTmp.ShipToPostalCode,function(addr){
-						soTmp.ShipToState=addr.StateCode.value;
-						soTmp.ShipToCounty=addr.County.value;
-						soTmp.ShipToCountry=addr.CountryCode.value;
-						soTmp.ShipToCity=addr.City.value;
-						
-						// Generate SQL for insertion
-						console.log(soTmp);
-					});
 				});
-			});
 			
 			// SKUs available directly in the SO - Cross-ref in CB to add itemCodes into SalesOrderDetail
 			// console.log(so.items);
