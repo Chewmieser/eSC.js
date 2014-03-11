@@ -52,8 +52,7 @@ function pollMagento(client,sessionId){
 	// List sales orders updated since last update
 	client.salesOrderList({sessionId:sessionId, filters:config.magento.pollFilter}, function(err,result){
 		// Process list
-		//processOrders(client,sessionId,result.result.item);
-		console.log(result.result.item);
+		processOrders(client,sessionId,result.result.item);
 	});
 }
 
@@ -74,8 +73,9 @@ function processOrders(client,sessionId,orderList){
 			user.lookupUser(so, function(cust,bill,ship){
 				// Lookup SalesOrder
 				order.lookupSalesOrder(so,cust,bill,ship,function(soCode){
-					
+					console.log(soCode);
 				});
+			});
 			
 			// SKUs available directly in the SO - Cross-ref in CB to add itemCodes into SalesOrderDetail
 			// console.log(so.items);
