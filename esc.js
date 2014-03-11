@@ -22,6 +22,7 @@ var templates=require('./lib/templates.js'); // SQL-ready JSON templates
 var config=require('./config.js'); // eSC / Magento / MSSQL configuration
 var User=require('./lib/user.js');
 var Order=require('./lib/order.js');
+var Log=require('./lib/log.js');
 
 var soap=require('soap'); // Magento SOAP API
 var Connection=require('tedious').Connection; // ConnectedBusiness MSSQL
@@ -33,8 +34,9 @@ var Request=require('tedious').Request;
 └┴─────────────────────────┴┘ & Magento SOAP v2 API
 */
 var connection=new Connection(config.mssql); // Setup MSSQL connection - Keep alive until polling completed
-var user=new User(connection, Request, templates); // Setup user module
-var order=new Order(connection, Request, templates, user); // Setup SO module
+var log=new Log(config);
+var user=new User(connection, Request, templates, log); // Setup user module
+var order=new Order(connection, Request, templates, user, log); // Setup SO module
 
 // Connects to Magento, logs in and starts the polling procedure
 soap.createClient(config.magento.url, function(err,client){
@@ -73,7 +75,7 @@ function processOrders(client,sessionId,orderList){
 			user.lookupUser(so, function(cust,bill,ship){
 				// Lookup SalesOrder
 				order.lookupSalesOrder(so,cust,bill,ship,function(soCode){
-					console.log(soCode);
+					//console.log(soCode);
 				});
 			});
 		});
