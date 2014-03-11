@@ -1,0 +1,50 @@
+/*
+
+	▓█████   ██████  ▄████▄        ▄▄▄██▀▀▀██████ 	╔═╗┌─┐┌┐┌┌─┐┬┌─┐┬ ┬┬─┐┌─┐┌┬┐┬┌─┐┌┐┌
+	▓█   ▀ ▒██    ▒ ▒██▀ ▀█          ▒██ ▒██    ▒ 	║  │ ││││├┤ ││ ┬│ │├┬┘├─┤ │ ││ ││││
+	▒███   ░ ▓██▄   ▒▓█    ▄         ░██ ░ ▓██▄   	╚═╝└─┘┘└┘└  ┴└─┘└─┘┴└─┴ ┴ ┴ ┴└─┘┘└┘
+	▒▓█  ▄   ▒   ██▒▒▓▓▄ ▄██▒     ▓██▄██▓  ▒   ██▒	|- Central configuration file
+	░▒████▒▒██████▒▒▒ ▓███▀ ░ ██▓  ▓███▒ ▒██████▒▒	|- Magento, MSSQL and eSC configurations
+	░░ ▒░ ░▒ ▒▓▒ ▒ ░░ ░▒ ▒  ░ ▒▓▒  ▒▓▒▒░ ▒ ▒▓▒ ▒ ░	
+	 ░ ░  ░░ ░▒  ░ ░  ░  ▒    ░▒   ▒ ░▒░ ░ ░▒  ░ ░	
+	   ░   ░  ░  ░  ░         ░    ░ ░ ░ ░  ░  ░  
+	   ░  ░      ░  ░ ░        ░   ░   ░       ░  
+	                ░          ░       
+
+*/
+
+var configuration={
+	version: "0.0.1",
+	lastUpdate: '2014-03-04 18:40:00',
+	logFile: './log.txt',
+	magento: {
+		url: "",
+		user: "",
+		key: "",
+		pollFilter: {
+			complex_filter:{
+				item:{
+					key: 'updated_at',
+					value: {
+						key: 'gt',
+						value: ''
+					}
+				}
+			}
+		}
+	},
+	mssql: {
+		userName: '',
+		password: '',
+		server: '',
+		options: {
+			tdsVersion: '7_1',
+			rowCollectionOnRequestCompletion: true,
+			database: ''
+		}
+	}
+}
+
+configuration.magento.pollFilter.complex_filter.item.value.value=configuration.lastUpdate;
+
+module.exports=configuration;
