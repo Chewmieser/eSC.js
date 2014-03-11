@@ -76,9 +76,6 @@ function processOrders(client,sessionId,orderList){
 					console.log(soCode);
 				});
 			});
-			
-			// SKUs available directly in the SO - Cross-ref in CB to add itemCodes into SalesOrderDetail
-			// console.log(so.items);
 		});
 	}
 }
