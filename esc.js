@@ -18,11 +18,9 @@
 ││ Load Modules ││ SQL templates
 └┴──────────────┴┘ and node_modules 
 */
-var templates=require('./lib/templates.js'); // SQL-ready JSON templates
 var config=require('./config.js'); // eSC / Magento / MSSQL configuration
-var User=require('./lib/user.js');
-var Order=require('./lib/order.js');
 var Log=require('./lib/log.js');
+var CB=require('./lib/ConnectedBusiness.js');
 
 var soap=require('soap'); // Magento SOAP API
 var Connection=require('tedious').Connection; // ConnectedBusiness MSSQL
@@ -35,8 +33,7 @@ var Request=require('tedious').Request;
 */
 var connection=new Connection(config.mssql); // Setup MSSQL connection - Keep alive until polling completed
 var log=new Log(config);
-var user=new User(connection, Request, templates, log); // Setup user module
-var order=new Order(connection, Request, templates, user, log); // Setup SO module
+var cb=new CB(connection, Request, log);
 
 // Connects to Magento, logs in and starts the polling procedure
 soap.createClient(config.magento.url, function(err,client){
@@ -72,9 +69,9 @@ function processOrders(client,sessionId,orderList){
 			var so=result.result;
 			
 			// Lookup shipTo/billTo/contact codes, link properly
-			user.lookupUser(so, function(cust,bill,ship){
+			cb.user.lookupUser(so, function(cust,bill,ship){
 				// Lookup SalesOrder
-				order.lookupSalesOrder(so,cust,bill,ship,function(soCode){
+				cb.order.lookupSalesOrder(so,cust,bill,ship,function(soCode){
 					//console.log(soCode);
 				});
 			});
