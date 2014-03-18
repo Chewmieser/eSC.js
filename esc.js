@@ -32,8 +32,8 @@ connection.on('connect',function(){
 	// Connects to Magento, logs in and starts the polling procedure
 	soap.createClient(config.magento.url, function(err,client){
 		client.login({username:config.magento.user, apiKey:config.magento.key}, function(err,result){
-			pollMagento(client,result.loginReturn);
-			//pollConnectedBusiness(client,result.loginReturn);
+			//pollMagento(client,result.loginReturn);
+			pollConnectedBusiness(client,result.loginReturn);
 		});
 	});
 });
@@ -72,9 +72,13 @@ function pollConnectedBusiness(client,sessionId){
 			// Iterate through, make master order_id list
 			var ids="";
 			for (var i in orderList){
-				if (ids!="") ids+=",";
-				mageInv[orderList[i].increment_id].orderId=orderList[i].order_id;
-				ids+=orderList[i].order_id;
+				if (orderList[i].status!="complete"){
+					if (ids!="") ids+=",";
+					mageInv[orderList[i].increment_id].orderId=orderList[i].order_id;
+					ids+=orderList[i].order_id;
+				}else{
+					delete mageInv[orderList[i].increment_id];
+				}
 			}
 			
 			var filter={ complex_filter: { item: { key: 'order_id', value: { key: 'in', value: ids } } } }
@@ -134,33 +138,50 @@ function shipRemainder(client,sessionId){
 			for (var q in inv.tracks){
 				for (var p in inv.tracks[q].items){
 					if (ob[inv.tracks[q].items[p].itemId]==undefined){
-						ob[inv.tracks[q].items[p].itemId]=inv.tracks[q].items[p].shipQuant;
+						ob[inv.tracks[q].items[p].itemId]=(inv.tracks[q].items[p].shipQuant).toString();
 					}else{
-						ob[inv.tracks[q].items[p].itemId]+=inv.tracks[q].items[p].shipQuant;
+						ob[inv.tracks[q].items[p].itemId]=(parseInt(ob[inv.tracks[q].items[p].itemId])+inv.tracks[q].items[p].shipQuant).toString();
 					}
 				}
 			}
 			
+			var fOb=new Array();
+			for (var x in ob){
+				var tOb={
+					order_item_id: parseInt(x),
+					qty: parseInt(ob[x])
+				}
+				fOb.push(tOb);
+			}
+			
+			//salesOrderShipmentCreate|{'orderIncrementId':'100004715','itemsQty':{'item':{'order_item_id':'7023','qty':'400'}}}
+			//[{'order_item_id':'7023','qty':'400'}]}
+			
+			console.log(fOb);
+			console.log({sessionId:sessionId, orderIncrementId:i, itemsQty:{item:fOb[0]}});
+
 			// Create Shipment
-			client.salesOrderShipmentCreate({sessionId:sessionId, orderIncrementId:i, itemsQty:ob},function(err,result){
+			client.salesOrderShipmentCreate({sessionId:sessionId, orderIncrementId:i, itemsQty:{item:fOb[0]}},function(err,result){
 				// Now create tracks for the shipment
-				console.log(result);
-				var shipId=result.result.shipmentIncrementId;
+				if (!err){
+					console.log(client.lastRequest);
+					var shipId=result.result.shipmentIncrementId;
 				
-				for (var p in inv.tracks){
-					client.salesOrderShipmentAddTrack({sessionId:sessionId, shipmentIncrementId:shipId, carrier:inv.tracks[p].carrier, title:"", trackNumber:p},function(err,result){
-						// It's probably good now... Splice it from DNA... Oh shit... Invoice the quants from previously spliced tracking numbers -_-
-						mageInv[invI].tracks[invP].proc=true;
+					for (var p in inv.tracks){
+						client.salesOrderShipmentAddTrack({sessionId:sessionId, shipmentIncrementId:shipId, carrier:inv.tracks[p].carrier, title:"", trackNumber:p},function(err,result){
+							// It's probably good now... Splice it from DNA... Oh shit... Invoice the quants from previously spliced tracking numbers -_-
+							mageInv[invI].tracks[invP].proc=true;
 						
-						// Check proc & pre-proc... If all is set in i.tracks, continue with invoicing
-						var f=false;
-						for (var z in mageInv[invI].tracks){
-							if (mageInv[invI].tracks[z].proc == undefined && mageInv[invI].tracks[z].preProc == undefined) f=true;
-						}
+							// Check proc & pre-proc... If all is set in i.tracks, continue with invoicing
+							var f=false;
+							for (var z in mageInv[invI].tracks){
+								if (mageInv[invI].tracks[z].proc == undefined && mageInv[invI].tracks[z].preProc == undefined) f=true;
+							}
 						
-						// Invoice shipment if we can
-						if (!f) invoiceShipment(client,sessionId,invI);
-					}.bind({invI:i,invP:p})); // I do not like this bind...
+							// Invoice shipment if we can
+							if (!f) invoiceShipment(client,sessionId,invI);
+						}.bind({invI:i,invP:p})); // I do not like this bind...
+					}
 				}
 			});
 		}
@@ -199,7 +220,7 @@ function processOrders(client,sessionId,orderList){
 	for (var i in orderList){
 		client.salesOrderInfo({sessionId:sessionId, orderIncrementId:orderList[i].increment_id}, function(err,result){
 			var so=result.result;
-			console.log(so);
+			//console.log(so);
 			
 			// Lookup shipTo/billTo/contact codes, link properly
 			cb.user.lookupUser(so, function(cust,bill,ship){

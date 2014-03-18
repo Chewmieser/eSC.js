@@ -19,7 +19,7 @@ soap.createClient(config.magento.url, function(err,client){
 		
 		rl.on('line',function(cmd){
 			var parts=cmd.split("|");
-			var args=JSON.parse(parts[1]);
+			var args=JSON.parse(parts[1].replace(/'/g,'"'));
 			args.sessionId=sessionId;
 			
 			client[parts[0]](args,function(err,res){
